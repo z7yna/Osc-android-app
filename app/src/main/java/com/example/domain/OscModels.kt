@@ -102,3 +102,11 @@ data class FiringHistoryEntry(
     val timeEstimate: String
 )
 
+data class TargetPreset(
+    val name: String,
+    val x: Double,
+    val y: Double,
+    val z: Double
+)
+
+

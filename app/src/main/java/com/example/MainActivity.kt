@@ -159,6 +159,8 @@ fun FireControlApp(
                                 onSetCannonVariant = { viewModel.setCannonVariant(it) },
                                 onSetFireMode = { viewModel.setFireMode(it) },
                                 onSetOriginPreset = { viewModel.setOriginPreset(it) },
+                                onSetPasscode = { viewModel.setPasscode(it) },
+                                onSetNukeSize = { viewModel.setNukeSize(it) },
                                 onCalculate = { viewModel.calculateSolution() },
                                 onOpenHistory = { viewModel.openHistory() },
                                 onApplyHistoryEntry = { viewModel.applyHistoryEntry(it) },

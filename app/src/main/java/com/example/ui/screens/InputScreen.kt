@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -63,6 +64,8 @@ fun InputScreen(
     onSetCannonVariant: (CannonOriginVariant) -> Unit,
     onSetFireMode: (FireMode) -> Unit,
     onSetOriginPreset: (Coordinates) -> Unit,
+    onSetPasscode: (Int) -> Unit,
+    onSetNukeSize: (Int) -> Unit,
     onCalculate: () -> Unit,
     onOpenHistory: () -> Unit,
     onApplyHistoryEntry: (FiringHistoryEntry) -> Unit,
@@ -70,6 +73,7 @@ fun InputScreen(
     onScrollProgressChanged: (Float) -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
+    var showPasscodeDrawer by remember { mutableStateOf(false) }
 
     val scrollProgress by remember {
         derivedStateOf {
@@ -113,7 +117,8 @@ fun InputScreen(
             CannonOriginCard(
                 state = state,
                 onSelectField = onSelectField,
-                onSetPreset = onSetOriginPreset
+                onSetPreset = onSetOriginPreset,
+                onOpenPasscodePicker = { showPasscodeDrawer = true }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -122,7 +127,8 @@ fun InputScreen(
             TargetCard(
                 state = state,
                 onSelectField = onSelectField,
-                onSetFireMode = onSetFireMode
+                onSetFireMode = onSetFireMode,
+                onSetNukeSize = onSetNukeSize
             )
 
             // Animated Validation Warnings Glass Banner
@@ -145,6 +151,16 @@ fun InputScreen(
                 onApplyHistoryEntry = onApplyHistoryEntry
             )
         }
+
+        // Passcode Picker iOS 26 Glass Bottom Sheet
+        PasscodePickerBottomSheet(
+            isVisible = showPasscodeDrawer,
+            currentPasscode = state.passcode,
+            onSelectPasscode = { code ->
+                onSetPasscode(code)
+            },
+            onDismiss = { showPasscodeDrawer = false }
+        )
     }
 }
 
@@ -530,16 +546,14 @@ private fun RecentHistoryStripCard(
 private fun CannonOriginCard(
     state: FireControlUiState,
     onSelectField: (ActiveField) -> Unit,
-    onSetPreset: (Coordinates) -> Unit
+    onSetPreset: (Coordinates) -> Unit,
+    onOpenPasscodePicker: () -> Unit
 ) {
     val isSfc = state.cannonVariant == CannonOriginVariant.OSC_SFC
-    val isHighlighted = state.activeField in listOf(
-        ActiveField.ORIGIN_X, ActiveField.ORIGIN_Y, ActiveField.ORIGIN_Z, ActiveField.PASSCODE
-    )
 
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        isHighlighted = isHighlighted
+        isHighlighted = false
     ) {
         Row(
             modifier = Modifier
@@ -615,12 +629,11 @@ private fun CannonOriginCard(
                     color = SecondaryText
                 )
 
-                val isPasscodeActive = state.activeField == ActiveField.PASSCODE
                 LiquidGlassPill(
                     label = "CODE ${state.passcodeStr}",
-                    isSelected = isPasscodeActive,
+                    isSelected = false,
                     modifier = Modifier.testTag("passcode_well"),
-                    onClick = { onSelectField(ActiveField.PASSCODE) }
+                    onClick = onOpenPasscodePicker
                 )
             }
         }
@@ -631,7 +644,8 @@ private fun CannonOriginCard(
 private fun TargetCard(
     state: FireControlUiState,
     onSelectField: (ActiveField) -> Unit,
-    onSetFireMode: (FireMode) -> Unit
+    onSetFireMode: (FireMode) -> Unit,
+    onSetNukeSize: (Int) -> Unit
 ) {
     val isSfc = state.cannonVariant == CannonOriginVariant.OSC_SFC
     val isHighlighted = state.activeField in listOf(
@@ -742,7 +756,7 @@ private fun TargetCard(
                                 modifier = Modifier
                                     .weight(1f)
                                     .testTag("sfc_size_$size"),
-                                onClick = { onSelectField(ActiveField.NUKE_SIZE) }
+                                onClick = { onSetNukeSize(size) }
                             )
                         }
                     }

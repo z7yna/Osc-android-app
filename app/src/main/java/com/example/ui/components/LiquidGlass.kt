@@ -202,23 +202,7 @@ fun AmoledRedAtmosphereBackground(
                     SubRootSpec(0.80f, 0.34f, 0.26f, 4.3f)
                 )
             ),
-            // 4. Upper-left secondary tendril
-            RootBranchSpec(
-                startNorm = Offset(-0.04f, 0.28f),
-                dirAngleRad = 0.42f,
-                lengthNorm = 0.48f,
-                amplitudeDp = 14f,
-                waveFreq = 3.2f,
-                speed = 0.65f,
-                phase = 4.2f,
-                baseStrokeDp = 1.35f,
-                baseAlpha = 0.58f,
-                subBranches = listOf(
-                    SubRootSpec(0.40f, -0.45f, 0.42f, 1.9f),
-                    SubRootSpec(0.72f, 0.38f, 0.30f, 3.5f)
-                )
-            ),
-            // 5. Mid-left creeping root
+            // 4. Mid-left creeping root
             RootBranchSpec(
                 startNorm = Offset(-0.04f, 0.50f),
                 dirAngleRad = 0.26f,
@@ -234,7 +218,7 @@ fun AmoledRedAtmosphereBackground(
                     SubRootSpec(0.66f, -0.45f, 0.34f, 4.1f)
                 )
             ),
-            // 6. Mid-right high tendril
+            // 5. Mid-right high tendril
             RootBranchSpec(
                 startNorm = Offset(1.04f, 0.36f),
                 dirAngleRad = 2.86f,
@@ -250,7 +234,7 @@ fun AmoledRedAtmosphereBackground(
                     SubRootSpec(0.70f, -0.38f, 0.32f, 4.8f)
                 )
             ),
-            // 7. Mid-right descending root
+            // 6. Mid-right descending root
             RootBranchSpec(
                 startNorm = Offset(1.03f, 0.58f),
                 dirAngleRad = 2.66f,
@@ -266,23 +250,7 @@ fun AmoledRedAtmosphereBackground(
                     SubRootSpec(0.64f, 0.38f, 0.34f, 0.4f)
                 )
             ),
-            // 8. Lower-left lateral root
-            RootBranchSpec(
-                startNorm = Offset(-0.04f, 0.78f),
-                dirAngleRad = -0.34f,
-                lengthNorm = 0.52f,
-                amplitudeDp = 15f,
-                waveFreq = 2.9f,
-                speed = 0.56f,
-                phase = 1.3f,
-                baseStrokeDp = 1.5f,
-                baseAlpha = 0.62f,
-                subBranches = listOf(
-                    SubRootSpec(0.34f, -0.44f, 0.42f, 3.0f),
-                    SubRootSpec(0.68f, 0.40f, 0.32f, 5.1f)
-                )
-            ),
-            // 9. Bottom-left rising root
+            // 7. Bottom-left rising root
             RootBranchSpec(
                 startNorm = Offset(0.14f, 1.04f),
                 dirAngleRad = -1.18f,
@@ -298,7 +266,7 @@ fun AmoledRedAtmosphereBackground(
                     SubRootSpec(0.68f, -0.42f, 0.33f, 1.2f)
                 )
             ),
-            // 10. Bottom-center ascending root
+            // 8. Bottom-center ascending root
             RootBranchSpec(
                 startNorm = Offset(0.52f, 1.04f),
                 dirAngleRad = -1.62f,
@@ -314,7 +282,7 @@ fun AmoledRedAtmosphereBackground(
                     SubRootSpec(0.65f, 0.46f, 0.35f, 4.4f)
                 )
             ),
-            // 11. Bottom-right rising root
+            // 9. Bottom-right rising root
             RootBranchSpec(
                 startNorm = Offset(0.84f, 1.04f),
                 dirAngleRad = -1.96f,

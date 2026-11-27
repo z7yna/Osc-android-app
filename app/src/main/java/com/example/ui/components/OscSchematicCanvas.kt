@@ -7,8 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,6 +49,14 @@ fun OscSchematicCanvas(
         ),
         label = "RadarSweep"
     )
+
+    var lastSweepAngle by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(sweepAngle) {
+        if (sweepAngle < lastSweepAngle || (lastSweepAngle > 300f && sweepAngle < 60f)) {
+            com.example.ui.audio.SoundEngine.instance.playRadarPing()
+        }
+        lastSweepAngle = sweepAngle
+    }
 
     LiquidGlassSurface(
         modifier = modifier.fillMaxWidth(),

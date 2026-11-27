@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import com.example.domain.CannonOriginVariant
 import com.example.domain.FireMode
 import com.example.domain.FiringHistoryEntry
+import com.example.domain.TargetPreset
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -69,6 +70,71 @@ class PreferencesManager(context: Context) {
         get() = prefs.getInt(KEY_MAGAZINE_SLOT, 0)
         set(value) = prefs.edit().putInt(KEY_MAGAZINE_SLOT, value).apply()
 
+    fun getTargetPresets(): List<TargetPreset> {
+        val raw = prefs.getString(KEY_TARGET_PRESETS, null)
+        if (raw == null) {
+            // Default built-in presets
+            val defaults = listOf(
+                TargetPreset("Main Base", 1024.0, 68.0, -2048.0),
+                TargetPreset("Enemy Spawner", 2048.0, 70.0, 1024.0),
+                TargetPreset("Target Alpha", 0.0, 72.0, -5000.0)
+            )
+            saveTargetPresets(defaults)
+            return defaults
+        }
+        return try {
+            val array = JSONArray(raw)
+            buildList {
+                for (i in 0 until array.length()) {
+                    val obj = array.optJSONObject(i) ?: continue
+                    add(
+                        TargetPreset(
+                            name = obj.optString("name", "Preset"),
+                            x = obj.optDouble("x", 0.0),
+                            y = obj.optDouble("y", 64.0),
+                            z = obj.optDouble("z", 0.0)
+                        )
+                    )
+                }
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    fun addTargetPreset(preset: TargetPreset): List<TargetPreset> {
+        val current = getTargetPresets().toMutableList()
+        // Replace if name exists, otherwise append
+        val existingIdx = current.indexOfFirst { it.name.equals(preset.name, ignoreCase = true) }
+        if (existingIdx != -1) {
+            current[existingIdx] = preset
+        } else {
+            current.add(preset)
+        }
+        saveTargetPresets(current)
+        return current
+    }
+
+    fun deleteTargetPreset(name: String): List<TargetPreset> {
+        val current = getTargetPresets().filterNot { it.name.equals(name, ignoreCase = true) }
+        saveTargetPresets(current)
+        return current
+    }
+
+    private fun saveTargetPresets(presets: List<TargetPreset>) {
+        val array = JSONArray()
+        presets.forEach { p ->
+            val obj = JSONObject().apply {
+                put("name", p.name)
+                put("x", p.x)
+                put("y", p.y)
+                put("z", p.z)
+            }
+            array.put(obj)
+        }
+        prefs.edit().putString(KEY_TARGET_PRESETS, array.toString()).apply()
+    }
+
     fun getHistory(): List<FiringHistoryEntry> {
         val raw = prefs.getString(KEY_HISTORY, null) ?: return emptyList()
         return try {
@@ -90,7 +156,7 @@ class PreferencesManager(context: Context) {
                             originZ = obj.optDouble("originZ", 0.0),
                             targetX = obj.optDouble("targetX", 0.0),
                             targetY = obj.optDouble("targetY", 68.0),
-                            targetZ = obj.optDouble("targetZ", 0.0),
+                            targetZ = obj.optDouble("targetZ", -2048.0),
                             passcode = obj.optInt("passcode", 940),
                             nukeSize = obj.optInt("nukeSize", 10),
                             stabDepth = obj.optInt("stabDepth", 10),
@@ -176,5 +242,6 @@ class PreferencesManager(context: Context) {
         private const val KEY_STAB_DEPTH = "stab_depth"
         private const val KEY_MAGAZINE_SLOT = "magazine_slot"
         private const val KEY_HISTORY = "firing_history"
+        private const val KEY_TARGET_PRESETS = "target_presets"
     }
 }
