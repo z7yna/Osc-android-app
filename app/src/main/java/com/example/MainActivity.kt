@@ -119,35 +119,33 @@ fun FireControlApp(
                 AnimatedContent(
                     targetState = state.screenMode,
                     transitionSpec = {
-                        if (targetState != ScreenMode.INPUT) {
-                            (slideInHorizontally(
-                                animationSpec = spring(
-                                    dampingRatio = 0.86f,
-                                    stiffness = Spring.StiffnessMediumLow
-                                )
-                            ) { width -> width / 3 } +
-                                scaleIn(initialScale = 0.96f, animationSpec = tween(320)) +
-                                fadeIn(animationSpec = tween(300)))
-                                .togetherWith(
-                                    slideOutHorizontally(animationSpec = tween(280)) { width -> -width / 4 } +
-                                        scaleOut(targetScale = 0.95f, animationSpec = tween(280)) +
-                                        fadeOut(animationSpec = tween(220))
-                                )
-                        } else {
-                            (slideInHorizontally(
-                                animationSpec = spring(
-                                    dampingRatio = 0.86f,
-                                    stiffness = Spring.StiffnessMediumLow
-                                )
-                            ) { width -> -width / 3 } +
-                                scaleIn(initialScale = 0.96f, animationSpec = tween(320)) +
-                                fadeIn(animationSpec = tween(300)))
-                                .togetherWith(
-                                    slideOutHorizontally(animationSpec = tween(280)) { width -> width / 4 } +
-                                        scaleOut(targetScale = 0.95f, animationSpec = tween(280)) +
-                                        fadeOut(animationSpec = tween(220))
-                                )
-                        }
+                        val forward = targetState.ordinal > initialState.ordinal
+
+                        val enter = slideInHorizontally(
+                            animationSpec = tween(400)
+                        ) { width ->
+                            if (forward) width else -width
+                        } + fadeIn(
+                            animationSpec = tween(350)
+                        ) + scaleIn(
+                            initialScale = 0.965f,
+                            animationSpec = tween(400)
+                        )
+
+                        val exit = slideOutHorizontally(
+                            animationSpec = tween(320)
+                        ) { width ->
+                            if (forward) -width / 4 else width / 4
+                        } + fadeOut(
+                            animationSpec = tween(260)
+                        ) + scaleOut(
+                            targetScale = 0.97f,
+                            animationSpec = tween(320)
+                        )
+
+                        enter.togetherWith(exit).using(
+                            SizeTransform(clip = false)
+                        )
                     },
                     label = "ScreenTransition"
                 ) { screen ->
