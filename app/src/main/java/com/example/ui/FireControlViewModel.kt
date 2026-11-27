@@ -2,8 +2,10 @@ package com.example.ui
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.viewModelScope
-import com.example.data.PreferencesManager
+import com.example.data.MK6Memory
+import com.example.data.MSMemory
+import com.example.data.ModePreferencesManager
+import com.example.data.SFMemory
 import com.example.domain.*
 import com.example.ui.components.ActiveField
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -13,7 +15,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 
 enum class ScreenMode {
     INPUT,
@@ -32,7 +33,6 @@ data class FireControlUiState(
     val cannonVariant: CannonOriginVariant = CannonOriginVariant.OSC_MK6,
     val fireMode: FireMode = FireMode.NUKE,
     val targetName: String = "Target 1",
-    // String inputs to allow smooth editing without jumping
     val originXStr: String = "0",
     val originYStr: String = "64",
     val originZStr: String = "0",
@@ -43,7 +43,6 @@ data class FireControlUiState(
     val nukeSizeStr: String = "10",
     val stabDepthStr: String = "10",
     val magazineSlotStr: String = "0",
-    // Computed values
     val calculationResult: CalculationResult? = null,
     val validationResult: ValidationResult = ValidationResult(true, emptyList()),
     val errorMessage: String? = null,
@@ -95,26 +94,19 @@ data class FireControlUiState(
 }
 
 class FireControlViewModel(application: Application) : AndroidViewModel(application) {
-    private val prefs = PreferencesManager(application)
+    private val mk6Memory = MK6Memory(application)
+    private val msMemory = MSMemory(application)
+    private val sfMemory = SFMemory(application)
 
-    private val _uiState = MutableStateFlow(
-        FireControlUiState(
-            cannonVariant = prefs.cannonVariant,
-            fireMode = prefs.fireMode,
-            targetName = prefs.targetName,
-            originXStr = prefs.originX.toInt().toString(),
-            originYStr = prefs.originY.toInt().toString(),
-            originZStr = prefs.originZ.toInt().toString(),
-            targetXStr = prefs.targetX.toInt().toString(),
-            targetYStr = prefs.targetY.toInt().toString(),
-            targetZStr = prefs.targetZ.toInt().toString(),
-            passcodeStr = prefs.passcode.toString(),
-            nukeSizeStr = prefs.nukeSize.toString(),
-            stabDepthStr = prefs.stabDepth.toString(),
-            magazineSlotStr = prefs.magazineSlot.toString(),
-            history = prefs.getHistory()
-        )
-    )
+    private fun getMemoryForVariant(variant: CannonOriginVariant): ModePreferencesManager {
+        return when (variant) {
+            CannonOriginVariant.OSC_MK6 -> mk6Memory
+            CannonOriginVariant.OSC_MS -> msMemory
+            CannonOriginVariant.OSC_SFC -> sfMemory
+        }
+    }
+
+    private val _uiState = MutableStateFlow(loadStateForVariant(CannonOriginVariant.OSC_MK6))
     val uiState: StateFlow<FireControlUiState> = _uiState.asStateFlow()
 
     private val _hapticEvents = MutableSharedFlow<HapticEvent>(extraBufferCapacity = 4)
@@ -122,6 +114,45 @@ class FireControlViewModel(application: Application) : AndroidViewModel(applicat
 
     init {
         recomputeValidation()
+    }
+
+    private fun loadStateForVariant(variant: CannonOriginVariant): FireControlUiState {
+        val mem = getMemoryForVariant(variant)
+        return FireControlUiState(
+            cannonVariant = variant,
+            fireMode = mem.fireMode,
+            targetName = mem.targetName,
+            originXStr = mem.originX.toInt().toString(),
+            originYStr = mem.originY.toInt().toString(),
+            originZStr = mem.originZ.toInt().toString(),
+            targetXStr = mem.targetX.toInt().toString(),
+            targetYStr = mem.targetY.toInt().toString(),
+            targetZStr = mem.targetZ.toInt().toString(),
+            passcodeStr = mem.passcode.toString(),
+            nukeSizeStr = mem.nukeSize.toString(),
+            stabDepthStr = mem.stabDepth.toString(),
+            magazineSlotStr = mem.magazineSlot.toString(),
+            screenMode = mem.screenMode,
+            history = mem.getHistory()
+        )
+    }
+
+    private fun saveCurrentStateToMemory() {
+        val state = _uiState.value
+        val mem = getMemoryForVariant(state.cannonVariant)
+        mem.fireMode = state.fireMode
+        mem.targetName = state.targetName
+        mem.originX = state.origin.x
+        mem.originY = state.origin.y
+        mem.originZ = state.origin.z
+        mem.targetX = state.target.x
+        mem.targetY = state.target.y
+        mem.targetZ = state.target.z
+        mem.passcode = state.passcode
+        mem.nukeSize = state.nukeSize
+        mem.stabDepth = state.stabDepth
+        mem.magazineSlot = state.magazineSlot
+        mem.screenMode = state.screenMode
     }
 
     fun selectField(field: ActiveField?) {
@@ -235,27 +266,36 @@ class FireControlViewModel(application: Application) : AndroidViewModel(applicat
                 ActiveField.MAGAZINE_SLOT -> state.copy(magazineSlotStr = value)
             }
         }
+        saveCurrentStateToMemory()
         recomputeValidation()
     }
 
     fun setCannonVariant(variant: CannonOriginVariant) {
-        _uiState.update { state ->
-            val updatedState = state.copy(cannonVariant = variant)
-            val validFields = visibleFields(updatedState)
-            val nextActive = if (state.activeField != null && state.activeField !in validFields) {
-                null
-            } else {
-                state.activeField
-            }
-            updatedState.copy(activeField = nextActive)
-        }
-        prefs.cannonVariant = variant
+        saveCurrentStateToMemory()
+        val loadedState = loadStateForVariant(variant)
+        _uiState.update { loadedState }
         recomputeValidation()
     }
 
     fun setFireMode(mode: FireMode) {
         _uiState.update { it.copy(fireMode = mode) }
-        prefs.fireMode = mode
+        saveCurrentStateToMemory()
+        recomputeValidation()
+    }
+
+    fun setPasscode(code: Int) {
+        dismissKeypad()
+        _uiState.update { it.copy(passcodeStr = code.toString()) }
+        saveCurrentStateToMemory()
+        _hapticEvents.tryEmit(HapticEvent.HISTORY_SELECTED)
+        recomputeValidation()
+    }
+
+    fun setNukeSize(size: Int) {
+        dismissKeypad()
+        _uiState.update { it.copy(nukeSizeStr = size.toString()) }
+        saveCurrentStateToMemory()
+        _hapticEvents.tryEmit(HapticEvent.HISTORY_SELECTED)
         recomputeValidation()
     }
 
@@ -277,7 +317,7 @@ class FireControlViewModel(application: Application) : AndroidViewModel(applicat
 
     fun setTargetName(name: String) {
         _uiState.update { it.copy(targetName = name) }
-        prefs.targetName = name
+        saveCurrentStateToMemory()
     }
 
     fun setOriginPreset(origin: Coordinates) {
@@ -288,6 +328,7 @@ class FireControlViewModel(application: Application) : AndroidViewModel(applicat
                 originZStr = origin.z.toInt().toString()
             )
         }
+        saveCurrentStateToMemory()
         recomputeValidation()
     }
 
@@ -343,17 +384,8 @@ class FireControlViewModel(application: Application) : AndroidViewModel(applicat
                 cannonOrigin = state.cannonVariant
             )
 
-            // Save to persistent storage
-            prefs.originX = state.origin.x
-            prefs.originY = state.origin.y
-            prefs.originZ = state.origin.z
-            prefs.targetX = state.target.x
-            prefs.targetY = state.target.y
-            prefs.targetZ = state.target.z
-            prefs.passcode = state.passcode
-            prefs.nukeSize = state.nukeSize
-            prefs.stabDepth = state.stabDepth
-            prefs.magazineSlot = usedMagazineSlot
+            saveCurrentStateToMemory()
+            val mem = getMemoryForVariant(state.cannonVariant)
 
             val historyEntry = FiringHistoryEntry(
                 id = System.currentTimeMillis(),
@@ -374,7 +406,7 @@ class FireControlViewModel(application: Application) : AndroidViewModel(applicat
                 totalTnt = result.tntRequirements.totalTnt,
                 timeEstimate = result.timeEstimate
             )
-            val updatedHistory = prefs.addHistoryEntry(historyEntry)
+            val updatedHistory = mem.addHistoryEntry(historyEntry)
 
             _hapticEvents.tryEmit(HapticEvent.CALCULATION_SUCCESS)
 
@@ -387,6 +419,7 @@ class FireControlViewModel(application: Application) : AndroidViewModel(applicat
                     screenMode = ScreenMode.RESULTS
                 )
             }
+            mem.screenMode = ScreenMode.RESULTS
         } catch (e: Exception) {
             _uiState.update {
                 it.copy(errorMessage = "Calculation failed: ${e.message}")
@@ -396,25 +429,28 @@ class FireControlViewModel(application: Application) : AndroidViewModel(applicat
 
     fun applyHistoryEntry(entry: FiringHistoryEntry) {
         dismissKeypad()
-        prefs.cannonVariant = entry.cannonVariant
-        prefs.fireMode = entry.fireMode
-        prefs.originX = entry.originX
-        prefs.originY = entry.originY
-        prefs.originZ = entry.originZ
-        prefs.targetX = entry.targetX
-        prefs.targetY = entry.targetY
-        prefs.targetZ = entry.targetZ
-        prefs.passcode = entry.passcode
-        prefs.nukeSize = entry.nukeSize
-        prefs.stabDepth = entry.stabDepth
-        prefs.magazineSlot = entry.magazineSlot
+        val mem = getMemoryForVariant(entry.cannonVariant)
+        mem.fireMode = entry.fireMode
+        mem.originX = entry.originX
+        mem.originY = entry.originY
+        mem.originZ = entry.originZ
+        mem.targetX = entry.targetX
+        mem.targetY = entry.targetY
+        mem.targetZ = entry.targetZ
+        mem.passcode = entry.passcode
+        mem.nukeSize = entry.nukeSize
+        mem.stabDepth = entry.stabDepth
+        mem.magazineSlot = entry.magazineSlot
 
         _hapticEvents.tryEmit(HapticEvent.HISTORY_SELECTED)
+
+        if (entry.cannonVariant != _uiState.value.cannonVariant) {
+            setCannonVariant(entry.cannonVariant)
+        }
 
         _uiState.update {
             it.copy(
                 activeField = null,
-                cannonVariant = entry.cannonVariant,
                 fireMode = entry.fireMode,
                 originXStr = formatCoordString(entry.originX),
                 originYStr = formatCoordString(entry.originY),
@@ -430,11 +466,14 @@ class FireControlViewModel(application: Application) : AndroidViewModel(applicat
                 screenMode = ScreenMode.INPUT
             )
         }
+        saveCurrentStateToMemory()
         recomputeValidation()
     }
 
     fun clearHistory() {
-        val updated = prefs.clearHistory()
+        val state = _uiState.value
+        val mem = getMemoryForVariant(state.cannonVariant)
+        val updated = mem.clearHistory()
         _uiState.update { it.copy(history = updated) }
     }
 
@@ -449,9 +488,11 @@ class FireControlViewModel(application: Application) : AndroidViewModel(applicat
     fun openHistory() {
         dismissKeypad()
         _uiState.update { it.copy(screenMode = ScreenMode.HISTORY) }
+        saveCurrentStateToMemory()
     }
 
     fun returnToInputs() {
         _uiState.update { it.copy(screenMode = ScreenMode.INPUT) }
+        saveCurrentStateToMemory()
     }
 }
