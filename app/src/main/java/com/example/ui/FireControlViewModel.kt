@@ -299,21 +299,7 @@ class FireControlViewModel(application: Application) : AndroidViewModel(applicat
         recomputeValidation()
     }
 
-    fun setPasscode(code: Int) {
-        dismissKeypad()
-        _uiState.update { it.copy(passcodeStr = code.toString()) }
-        prefs.passcode = code
-        _hapticEvents.tryEmit(HapticEvent.HISTORY_SELECTED)
-        recomputeValidation()
-    }
 
-    fun setNukeSize(size: Int) {
-        dismissKeypad()
-        _uiState.update { it.copy(nukeSizeStr = size.toString()) }
-        prefs.nukeSize = size
-        _hapticEvents.tryEmit(HapticEvent.HISTORY_SELECTED)
-        recomputeValidation()
-    }
 
     fun setTargetName(name: String) {
         _uiState.update { it.copy(targetName = name) }

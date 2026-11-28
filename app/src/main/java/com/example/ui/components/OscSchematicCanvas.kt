@@ -40,23 +40,7 @@ fun OscSchematicCanvas(
         label = "TargetPulseAlpha"
     )
 
-    val sweepAngle by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(5200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "RadarSweep"
-    )
 
-    var lastSweepAngle by remember { mutableFloatStateOf(0f) }
-    LaunchedEffect(sweepAngle) {
-        if (sweepAngle < lastSweepAngle || (lastSweepAngle > 300f && sweepAngle < 60f)) {
-            com.example.ui.audio.SoundEngine.instance.playRadarPing()
-        }
-        lastSweepAngle = sweepAngle
-    }
 
     LiquidGlassSurface(
         modifier = modifier.fillMaxWidth(),
@@ -161,33 +145,7 @@ fun OscSchematicCanvas(
                     strokeWidth = 0.8.dp.toPx()
                 )
 
-                // 5. Optical Radar Sweep Cone + Hairline Beam
-                rotate(degrees = sweepAngle, pivot = center) {
-                    drawArc(
-                        brush = Brush.sweepGradient(
-                            0.0f to Color.Transparent,
-                            0.72f to Color.Transparent,
-                            0.94f to Crimson.copy(alpha = 0.22f),
-                            1.0f to LiveRed.copy(alpha = 0.36f),
-                            center = center
-                        ),
-                        startAngle = -90f,
-                        sweepAngle = 360f,
-                        useCenter = true,
-                        topLeft = Offset(center.x - radius, center.y - radius),
-                        size = androidx.compose.ui.geometry.Size(radius * 2f, radius * 2f)
-                    )
-                    drawLine(
-                        brush = Brush.radialGradient(
-                            colors = listOf(HighlightWhite.copy(alpha = 0.7f), LiveRed.copy(alpha = 0.6f)),
-                            center = center,
-                            radius = radius
-                        ),
-                        start = center,
-                        end = Offset(center.x, center.y - radius),
-                        strokeWidth = 1.4.dp.toPx()
-                    )
-                }
+
 
                 // 6. Vector to Target
                 val dx = target.x - origin.x
